@@ -4,6 +4,23 @@ import bcrypt from "bcrypt";
 
 const SECRET = "clave_super_segura";
 
+export const verifyToken = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1]; // Espera formato: Bearer <token>
+
+  if (!token) {
+    return res.status(401).json({ error: "Token no proporcionado" });
+  }
+
+  jwt.verify(token, SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(403).json({ error: "Token inválido o expirado" });
+    }
+    req.user = decoded;
+    next();
+  });
+};
+
 export const register = async (req, res) => {
   try {
     const { nombre, usuario, pass } = req.body;
