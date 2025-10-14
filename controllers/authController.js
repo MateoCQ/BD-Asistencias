@@ -1,4 +1,8 @@
 import { Usuario } from "../models/index.js";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+
+const SECRET = "clave_super_segura";
 
 export const register = async (req, res) => {
   try {
@@ -13,13 +17,18 @@ export const register = async (req, res) => {
       return res.status(409).json({ error: "El usuario ya existe" });
     }
 
-    const nuevoUsuario = await Usuario.create({ nombre, usuario, pass });
+    const hashedPass = await bcrypt.hash(pass, 10);
+
+    const nuevoUsuario = await Usuario.create({ nombre, usuario, pass: hashedPass });
     res.status(201).json({ message: "Usuario registrado correctamente", usuario: nuevoUsuario });
   } catch (error) {
-    if (error.name === "SequelizeValidationError") {
+    if (
+      error.name === "SequelizeValidationError" ||
+      error.name === "SequelizeUniqueConstraintError"
+    ) {
       return res.status(400).json({ error: error.errors.map(e => e.message).join(", ") });
     }
-    res.status(500).json({ error: "Error interno del servidor" });
+    res.status(500).json({ error: error.message || "Error interno del servidor" });
   }
 };
 
@@ -36,12 +45,15 @@ export const login = async (req, res) => {
       return res.status(401).json({ error: "Usuario o contraseña incorrectos" });
     }
 
-    if (user.pass !== pass) {
+    const validPass = await bcrypt.compare(pass, user.pass);
+    if (!validPass) {
       return res.status(401).json({ error: "Usuario o contraseña incorrectos" });
     }
 
-    res.json({ message: "Login exitoso", usuario: user });
+    const token = jwt.sign({ id: user.id, usuario: user.usuario }, SECRET, { expiresIn: "2h" });
+
+    res.json({ message: "Login exitoso", token, usuario: user });
   } catch (error) {
-    res.status(500).json({ error: "Error interno del servidor" });
+    res.status(500).json({ error: error.message || "Error interno del servidor" });
   }
 };
