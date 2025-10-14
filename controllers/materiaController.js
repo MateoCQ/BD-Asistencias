@@ -1,12 +1,12 @@
-import { Materia, Docente } from "../models/index.js";
+import { Materia, Usuario, Alumno } from "../models/index.js";
 
 export const getMaterias = async (req, res) => {
-  const materias = await Materia.findAll({ include: Docente });
+  const materias = await Materia.findAll({ include: [Usuario, Alumno] });
   res.json(materias);
 };
 
 export const getMateriaById = async (req, res) => {
-  const materia = await Materia.findByPk(req.params.id, { include: Docente });
+  const materia = await Materia.findByPk(req.params.id, { include: [Usuario, Alumno] });
   if (!materia) return res.status(404).json({ message: "Materia no encontrada" });
   res.json(materia);
 };
