@@ -11,4 +11,8 @@ export default (sequelize) =>
         type: DataTypes.STRING, 
         allowNull: false 
     },
+    año: { 
+        type: DataTypes.INTEGER, 
+        allowNull: false 
+    },
   });

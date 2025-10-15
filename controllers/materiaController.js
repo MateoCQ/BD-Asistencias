@@ -1,31 +1,56 @@
-import { Materia, Usuario, Alumno } from "../models/index.js";
+import { Materia } from "../models/index.js";
 
 export const getMaterias = async (req, res) => {
-  const materias = await Materia.findAll({ include: [Usuario, Alumno] });
-  res.json(materias);
+  try {
+    const materias = await Materia.findAll();
+    res.json(materias);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 export const getMateriaById = async (req, res) => {
-  const materia = await Materia.findByPk(req.params.id, { include: [Usuario, Alumno] });
-  if (!materia) return res.status(404).json({ message: "Materia no encontrada" });
-  res.json(materia);
+  try {
+    const materia = await Materia.findByPk(req.params.id);
+    if (!materia) return res.status(404).json({ message: "Materia no encontrada" });
+    res.json(materia);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 export const createMateria = async (req, res) => {
-  const materia = await Materia.create(req.body);
-  res.status(201).json(materia);
+  try {
+    const { nombre, año } = req.body;
+    if (!nombre || año === undefined) {
+      return res.status(400).json({ error: "Nombre y año son obligatorios" });
+    }
+    const materia = await Materia.create({ nombre, año });
+    res.status(201).json(materia);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 export const updateMateria = async (req, res) => {
-  const materia = await Materia.findByPk(req.params.id);
-  if (!materia) return res.status(404).json({ message: "Materia no encontrada" });
-  await materia.update(req.body);
-  res.json(materia);
+  try {
+    const { nombre, año } = req.body;
+    const materia = await Materia.findByPk(req.params.id);
+    if (!materia) return res.status(404).json({ message: "Materia no encontrada" });
+    await materia.update({ nombre, año });
+    res.json(materia);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 export const deleteMateria = async (req, res) => {
-  const materia = await Materia.findByPk(req.params.id);
-  if (!materia) return res.status(404).json({ message: "Materia no encontrada" });
-  await materia.destroy();
-  res.json({ message: "Materia eliminada" });
+  try {
+    const materia = await Materia.findByPk(req.params.id);
+    if (!materia) return res.status(404).json({ message: "Materia no encontrada" });
+    await materia.destroy();
+    res.json({ message: "Materia eliminada" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
