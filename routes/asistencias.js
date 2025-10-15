@@ -6,13 +6,14 @@ import {
   updateAsistencia,
   deleteAsistencia
 } from "../controllers/asistenciaController.js";
+import { verifyToken } from "../controllers/authController.js";
 
 const router = express.Router();
 
-router.get("/", getAsistencias);
-router.get("/:id", getAsistenciaById);
-router.post("/", createAsistencia);
-router.put("/:id", updateAsistencia);
-router.delete("/:id", deleteAsistencia);
+router.get("/", verifyToken, getAsistencias);
+router.get("/:id", verifyToken, getAsistenciaById);
+router.post("/", verifyToken, createAsistencia);
+router.put("/:id", verifyToken, updateAsistencia);
+router.delete("/:id", verifyToken, deleteAsistencia);
 
 export default router;

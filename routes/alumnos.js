@@ -6,13 +6,14 @@ import {
   updateAlumno,
   deleteAlumno
 } from "../controllers/alumnoController.js";
+import { verifyToken } from "../controllers/authController.js";
 
 const router = express.Router();
 
-router.get("/", getAlumnos);
-router.get("/:id", getAlumnoById);
-router.post("/", createAlumno);
-router.put("/:id", updateAlumno);
-router.delete("/:id", deleteAlumno);
+router.get("/", verifyToken, getAlumnos);
+router.get("/:id", verifyToken, getAlumnoById);
+router.post("/", verifyToken, createAlumno);
+router.put("/:id", verifyToken, updateAlumno);
+router.delete("/:id", verifyToken, deleteAlumno);
 
 export default router;
