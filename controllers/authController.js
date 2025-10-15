@@ -67,7 +67,7 @@ export const login = async (req, res) => {
       return res.status(401).json({ error: "Usuario o contraseña incorrectos" });
     }
 
-    const token = jwt.sign({ id: user.id, usuario: user.usuario }, SECRET, { expiresIn: "2h" });
+    const token = jwt.sign({ id: user.id, usuario: user.usuario, isAdmin: user.isAdmin }, SECRET, { expiresIn: "2h" });
 
     res.json({ message: "Login exitoso", token, usuario: user });
   } catch (error) {
