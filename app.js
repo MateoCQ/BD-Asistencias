@@ -24,16 +24,10 @@ app.use("/api/asistencias", asistenciasRoutes);
 
 const PORT = process.env.PORT || 3000;
 
-// Crear SV HTTP
 const server = http.createServer(app); 
-
-// iniciar WebSocket server
 const wss = new WebSocketServer({ server }); 
-
-//Frontend y ESP32 clientes conectados
 const clients = new Set();
 
-//Coneccion WebSocket
 wss.on("connection", (ws) => {
   console.log("Nuevo cliente conectado (Frontend o ESP32)");
   clients.add(ws);
