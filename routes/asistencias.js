@@ -4,7 +4,9 @@ import {
   getAsistenciaById,
   createAsistencia,
   updateAsistencia,
-  deleteAsistencia
+  deleteAsistencia,
+  getAsistenciasByAlumno,
+  getAsistenciasByMateria,
 } from "../controllers/asistenciaController.js";
 import { verifyToken } from "../controllers/authController.js";
 
@@ -15,5 +17,7 @@ router.get("/:id", verifyToken, getAsistenciaById);
 router.post("/", verifyToken, createAsistencia);
 router.put("/:id", verifyToken, updateAsistencia);
 router.delete("/:id", verifyToken, deleteAsistencia);
+router.get("/alumno/:id", verifyToken, getAsistenciasByAlumno);
+router.get("/materia/:id", verifyToken, getAsistenciasByMateria);
 
 export default router;

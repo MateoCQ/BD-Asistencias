@@ -29,3 +29,14 @@ export const deleteAlumno = async (req, res) => {
   await alumno.destroy();
   res.json({ message: "Alumno eliminado" });
 };
+
+export const getMateriasAlumno = async (req, res) => {
+  try {
+    const { idAlumno } = req.params;
+    const alumno = await Alumno.findByPk(idAlumno, { include: Materia });
+    if (!alumno) return res.status(404).json({ message: "Alumno no encontrado" });
+    res.json(alumno.Materia);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

@@ -1,8 +1,6 @@
 import express from "express";
 import cors from "cors";
 import { sequelize } from "./models/index.js";
-
-//Nuevos imports para WebSocket
 import http from "http";
 import { WebSocketServer } from "ws";
 
@@ -24,8 +22,8 @@ app.use("/api/asistencias", asistenciasRoutes);
 
 const PORT = process.env.PORT || 3000;
 
-const server = http.createServer(app); 
-const wss = new WebSocketServer({ server }); 
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server });
 const clients = new Set();
 
 wss.on("connection", (ws) => {
@@ -33,11 +31,11 @@ wss.on("connection", (ws) => {
   clients.add(ws);
 
   ws.on("message", (message) => {
-    const tagID = message.toString();
+    const tagID = message.toString().trim();
     console.log(`Recibido del ESP32: ${tagID}`);
 
     clients.forEach((client) => {
-      if (client !== ws && client.readyState === ws.OPEN) { 
+      if (client !== ws && client.readyState === ws.OPEN) {
         client.send(tagID);
       }
     });
@@ -51,15 +49,14 @@ wss.on("connection", (ws) => {
   ws.send("Conexión con el servidor backend establecida");
 });
 
-
 async function startServer() {
   try {
     await sequelize.authenticate();
-    console.log("Conexión establecida");
+    console.log("Conexión a la base de datos establecida");
     await sequelize.sync({ force: false });
     server.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
   } catch (error) {
-    console.error("Error al iniciar:", error);
+    console.error("Error al iniciar el servidor:", error);
   }
 }
 

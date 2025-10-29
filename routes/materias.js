@@ -4,7 +4,8 @@ import {
   getMateriaById,
   createMateria,
   updateMateria,
-  deleteMateria
+  deleteMateria,
+  getMateriasByProfesor
 } from "../controllers/materiaController.js";
 import { verifyToken } from "../controllers/authController.js";
 
@@ -15,5 +16,5 @@ router.get("/:id", verifyToken, getMateriaById);
 router.post("/", verifyToken, createMateria);
 router.put("/:id", verifyToken, updateMateria);
 router.delete("/:id", verifyToken, deleteMateria);
-
+router.get("/profesor/:id", verifyToken, getMateriasByProfesor);
 export default router;

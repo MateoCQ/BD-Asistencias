@@ -19,13 +19,27 @@ export const getMateriaById = async (req, res) => {
   }
 };
 
+export const getMateriasByProfesor = async (req, res) => {
+  try {
+    const { idUsuario } = req.params;
+    const materias = await Materia.findAll({ where: { idUsuario } });
+    res.json(materias);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export const createMateria = async (req, res) => {
   try {
-    const { nombre, año } = req.body;
-    if (!nombre || año === undefined) {
-      return res.status(400).json({ error: "Nombre y año son obligatorios" });
+    const { nombre, año, idUsuario } = req.body;
+    if (!nombre || año === undefined || !idUsuario) {
+      return res.status(400).json({ error: "Nombre, año e idUsuario son obligatorios" });
     }
-    const materia = await Materia.create({ nombre, año });
+
+    const profesor = await Usuario.findByPk(idUsuario);
+    if (!profesor) return res.status(404).json({ error: "Profesor no encontrado" });
+
+    const materia = await Materia.create({ nombre, año, idUsuario });
     res.status(201).json(materia);
   } catch (error) {
     res.status(500).json({ error: error.message });

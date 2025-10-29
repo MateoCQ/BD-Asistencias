@@ -4,7 +4,8 @@ import {
   getAlumnoById,
   createAlumno,
   updateAlumno,
-  deleteAlumno
+  deleteAlumno,
+  getMateriasAlumno,
 } from "../controllers/alumnoController.js";
 import { verifyToken } from "../controllers/authController.js";
 
@@ -15,5 +16,6 @@ router.get("/:id", verifyToken, getAlumnoById);
 router.post("/", verifyToken, createAlumno);
 router.put("/:id", verifyToken, updateAlumno);
 router.delete("/:id", verifyToken, deleteAlumno);
+router.get("/:id/materias", verifyToken, getMateriasAlumno);
 
 export default router;

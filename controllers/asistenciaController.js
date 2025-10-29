@@ -21,8 +21,54 @@ export const getAsistenciaById = async (req, res) => {
 
 export const createAsistencia = async (req, res) => {
   try {
-    const asistencia = await Asistencia.create(req.body);
-    res.status(201).json(asistencia);
+    const { idAlumno, idMateria, state } = req.body;
+
+    if (!idAlumno || !idMateria)
+      return res.status(400).json({ error: "idAlumno e idMateria son requeridos" });
+
+    const alumno = await Alumno.findByPk(idAlumno);
+    const materia = await Materia.findByPk(idMateria);
+    if (!alumno || !materia)
+      return res.status(404).json({ error: "Alumno o materia no encontrados" });
+
+    const asistencia = await Asistencia.create({
+      fecha: new Date(),
+      state: state ?? true,
+      idalumno: idAlumno,
+      idmateria: idMateria,
+    });
+
+    res.status(201).json({ message: "Asistencia registrada", asistencia });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getAsistenciasByAlumno = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const asistencias = await Asistencia.findAll({
+      where: { idalumno: id },
+      include: [Materia],
+    });
+
+    if (!asistencias.length)
+      return res.status(404).json({ message: "No se encontraron asistencias para este alumno" });
+
+    res.json(asistencias);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getAsistenciasByMateria = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const asistencias = await Asistencia.findAll({
+      where: { idmateria: id },
+      include: [Alumno],
+    });
+    res.json(asistencias);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
