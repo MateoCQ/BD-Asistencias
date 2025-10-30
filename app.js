@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { sequelize } from "./models/index.js";
+import { sequelize, Alumno } from "./models/index.js"; // 👈 importa Alumno
 import http from "http";
 import { WebSocketServer } from "ws";
 
@@ -14,6 +14,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Rutas REST
 app.use("/api/auth", authRoutes);
 app.use("/api/usuarios", usuariosRoutes);
 app.use("/api/materias", materiasRoutes);
@@ -22,39 +23,83 @@ app.use("/api/asistencias", asistenciasRoutes);
 
 const PORT = process.env.PORT || 3000;
 
+// HTTP + WebSocket
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
-const clients = new Set();
+
+// Sets de clientes conectados
+const registrationAdmins = new Set(); // admins en página de registro
+const asistenciaViews = new Set();    // pantallas de asistencia
 
 wss.on("connection", (ws) => {
-  console.log("Nuevo cliente conectado (Frontend o ESP32)");
-  clients.add(ws);
+  console.log("Nuevo cliente conectado");
 
-  ws.on("message", (message) => {
-    const tagID = message.toString().trim();
-    console.log(`Recibido del ESP32: ${tagID}`);
+  ws.on("message", async (message) => {
+    let data;
+    try {
+      data = JSON.parse(message);
+    } catch {
+      data = message.toString().trim();
+    }
 
-    clients.forEach((client) => {
-      if (client !== ws && client.readyState === ws.OPEN) {
-        client.send(tagID);
+    // --- 1️⃣ ESCANEO DE TARJETA DESDE ESP32 ---
+    if (typeof data === "object" && data.type === "esp32_scan" && data.card_id) {
+      console.log(`Scan recibido: ${data.card_id}`);
+
+      const alumno = await Alumno.findOne({ where: { codeRFID: data.card_id } });
+
+      if (alumno) {
+        // ✅ Alumno existente → Asistencia
+        console.log("Alumno encontrado:", alumno.nombre);
+        for (const wsFront of asistenciaViews) {
+          if (wsFront.readyState === wsFront.OPEN) {
+            wsFront.send(JSON.stringify({ type: "new_attendance", alumno }));
+          }
+        }
+      } else {
+        // ⚠️ Tarjeta nueva → enviar a admins para registro
+        console.log("Tarjeta no registrada, enviando a admins...");
+        for (const admin of registrationAdmins) {
+          if (admin.readyState === admin.OPEN) {
+            admin.send(
+              JSON.stringify({ type: "new_card_scan", card_id: data.card_id })
+            );
+          }
+        }
       }
-    });
+    }
+
+    // --- 2️⃣ SUSCRIPCIÓN DESDE FRONTEND ---
+    if (typeof data === "object" && data.type === "browser_subscribe_registration") {
+      registrationAdmins.add(ws);
+      ws.isRegistration = true;
+      console.log("Admin suscripto al registro.");
+    }
+
+    if (typeof data === "object" && data.type === "browser_subscribe_asistencia") {
+      asistenciaViews.add(ws);
+      ws.isAsistencia = true;
+      console.log("Vista de asistencia suscripta.");
+    }
   });
 
   ws.on("close", () => {
+    if (ws.isRegistration) registrationAdmins.delete(ws);
+    if (ws.isAsistencia) asistenciaViews.delete(ws);
     console.log("Cliente desconectado");
-    clients.delete(ws);
   });
 
-  ws.send("Conexión con el servidor backend establecida");
+  ws.send("Conexión WS establecida con backend");
 });
 
 async function startServer() {
   try {
     await sequelize.authenticate();
-    console.log("Conexión a la base de datos establecida");
     await sequelize.sync({ force: false });
-    server.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
+    console.log("Base de datos sincronizada correctamente");
+    server.listen(PORT, () =>
+      console.log(`Servidor Express + WS corriendo en puerto ${PORT}`)
+    );
   } catch (error) {
     console.error("Error al iniciar el servidor:", error);
   }

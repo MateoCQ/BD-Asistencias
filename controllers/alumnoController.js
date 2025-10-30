@@ -12,9 +12,26 @@ export const getAlumnoById = async (req, res) => {
 };
 
 export const createAlumno = async (req, res) => {
-  const alumno = await Alumno.create(req.body);
-  res.status(201).json(alumno);
+  try {
+    const { nombre, legajo, codeRFID } = req.body;
+
+    if (!nombre || !legajo || !codeRFID) {
+      return res.status(400).json({ message: "Faltan datos obligatorios" });
+    }
+
+    const existe = await Alumno.findOne({ where: { codeRFID } });
+    if (existe) {
+      return res.status(409).json({ message: "Esta tarjeta ya está asignada" });
+    }
+
+    const alumno = await Alumno.create(req.body);
+    res.status(201).json(alumno);
+  } catch (error) {
+    console.error("Error creando alumno:", error);
+    res.status(500).json({ message: "Error al crear el alumno" });
+  }
 };
+
 
 export const updateAlumno = async (req, res) => {
   const alumno = await Alumno.findByPk(req.params.id);
