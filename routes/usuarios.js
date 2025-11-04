@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  createUsuario,
   getUsuarios,
   getUsuarioById,
   updateUsuario,
@@ -9,6 +10,7 @@ import { verifyToken } from "../controllers/authController.js";
 
 const router = express.Router();
 
+router.post("/", verifyToken, createUsuario);
 router.get("/", verifyToken, getUsuarios);
 router.get("/:id", verifyToken, getUsuarioById);
 router.put("/:id", verifyToken, updateUsuario);

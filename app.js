@@ -5,6 +5,9 @@ import http from "http";
 import { WebSocketServer } from "ws";
 
 import authRoutes from "./routes/auth.js";
+
+// Variable global para último RFID no registrado
+let ultimoRFIDNoRegistrado = { codeRFID: null, timestamp: null };
 import usuariosRoutes from "./routes/usuarios.js";
 import materiasRoutes from "./routes/materias.js";
 import alumnosRoutes from "./routes/alumnos.js";
@@ -34,6 +37,7 @@ const asistenciaViews = new Set();    // pantallas de asistencia
 wss.on("connection", (ws) => {
   console.log("Nuevo cliente conectado");
 
+  // La asignación debe ir dentro del bloque de tarjeta no registrada, no aquí
   ws.on("message", async (message) => {
     let data;
     try {
@@ -59,6 +63,8 @@ wss.on("connection", (ws) => {
       } else {
         // ⚠️ Tarjeta nueva → enviar a admins para registro
         console.log("Tarjeta no registrada, enviando a admins...");
+        // Guardar en variable global SOLO si data existe y es una tarjeta no registrada
+        ultimoRFIDNoRegistrado = { codeRFID: data.card_id, timestamp: Date.now() };
         for (const admin of registrationAdmins) {
           if (admin.readyState === admin.OPEN) {
             admin.send(
@@ -73,6 +79,15 @@ wss.on("connection", (ws) => {
     if (typeof data === "object" && data.type === "browser_subscribe_registration") {
       registrationAdmins.add(ws);
       ws.isRegistration = true;
+
+// Endpoint REST para último RFID no registrado
+app.get("/api/alumnos/ultimo-rfid-no-registrado", (req, res) => {
+  if (ultimoRFIDNoRegistrado.codeRFID) {
+    res.json(ultimoRFIDNoRegistrado);
+  } else {
+    res.status(404).json({ message: "No hay RFID no registrado reciente" });
+  }
+});
       console.log("Admin suscripto al registro.");
     }
 

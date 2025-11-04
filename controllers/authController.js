@@ -23,7 +23,7 @@ export const verifyToken = (req, res, next) => {
 
 export const register = async (req, res) => {
   try {
-    const { nombre, usuario, pass } = req.body;
+    const { nombre, usuario, pass, isAdmin } = req.body;
 
     if (!nombre || !usuario || !pass) {
       return res.status(400).json({ error: "Todos los campos son obligatorios" });
@@ -36,7 +36,12 @@ export const register = async (req, res) => {
 
     const hashedPass = await bcrypt.hash(pass, 10);
 
-    const nuevoUsuario = await Usuario.create({ nombre, usuario, pass: hashedPass });
+    const nuevoUsuario = await Usuario.create({ 
+      nombre, 
+      usuario, 
+      pass: hashedPass,
+      isAdmin: isAdmin || false
+    });
     res.status(201).json({ message: "Usuario registrado correctamente", usuario: nuevoUsuario });
   } catch (error) {
     if (

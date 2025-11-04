@@ -1,4 +1,4 @@
-import { Materia } from "../models/index.js";
+import { Materia, Usuario } from "../models/index.js";
 
 export const getMaterias = async (req, res) => {
   try {

@@ -6,11 +6,14 @@ import {
   updateAlumno,
   deleteAlumno,
   getMateriasAlumno,
+  getAlumnoByCodeRFID,
 } from "../controllers/alumnoController.js";
 import { verifyToken } from "../controllers/authController.js";
 
 const router = express.Router();
 
+
+router.get("/by-rfid/:codeRFID", verifyToken, getAlumnoByCodeRFID);
 router.get("/", verifyToken, getAlumnos);
 router.get("/:id", verifyToken, getAlumnoById);
 router.post("/", verifyToken, createAlumno);
