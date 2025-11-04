@@ -15,4 +15,10 @@ export default (sequelize) =>
         type: DataTypes.INTEGER, 
         allowNull: false 
     },
+  // Foreign key to Usuario (profesor)
+  idUsuario: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    // keep nullable to avoid breaking existing rows; controller validates on create
+  },
   });

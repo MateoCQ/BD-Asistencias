@@ -30,6 +30,12 @@ const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
+// In-memory deduplication maps to avoid processing rapid duplicate scans
+const LAST_SEEN_CARD_MS = 5000; // ignore same card within 5s by default
+const LAST_SEEN_ALUMNO_MS = 5000; // ignore same alumno within 5s
+const lastSeenByCard = new Map();
+const lastSeenByAlumno = new Map();
+
 // Sets de clientes conectados
 const registrationAdmins = new Set(); // admins en página de registro
 const asistenciaViews = new Set();    // pantallas de asistencia
@@ -50,11 +56,32 @@ wss.on("connection", (ws) => {
     if (typeof data === "object" && data.type === "esp32_scan" && data.card_id) {
       console.log(`Scan recibido: ${data.card_id}`);
 
+      // Simple server-side dedupe: ignore same card scanned too frequently
+      try {
+        const now = Date.now();
+        const lastCardTs = lastSeenByCard.get(data.card_id);
+        if (lastCardTs && (now - lastCardTs) < LAST_SEEN_CARD_MS) {
+          console.log(`Ignorando scan duplicado de tarjeta ${data.card_id} (dentro de ${LAST_SEEN_CARD_MS}ms)`);
+          return; // skip processing
+        }
+        lastSeenByCard.set(data.card_id, now);
+      } catch (e) {}
+
       const alumno = await Alumno.findOne({ where: { codeRFID: data.card_id } });
 
       if (alumno) {
         // ✅ Alumno existente → Asistencia
         console.log("Alumno encontrado:", alumno.nombre);
+        // Avoid repeated attendance entries for same alumno in a short window
+        try {
+          const now = Date.now();
+          const lastAlumnoTs = lastSeenByAlumno.get(alumno.id);
+          if (lastAlumnoTs && (now - lastAlumnoTs) < LAST_SEEN_ALUMNO_MS) {
+            console.log(`Ignorando asistencia duplicada para alumno ${alumno.id} (dentro de ${LAST_SEEN_ALUMNO_MS}ms)`);
+            return;
+          }
+          lastSeenByAlumno.set(alumno.id, now);
+        } catch (e) {}
         for (const wsFront of asistenciaViews) {
           if (wsFront.readyState === wsFront.OPEN) {
             wsFront.send(JSON.stringify({ type: "new_attendance", alumno }));
@@ -62,7 +89,7 @@ wss.on("connection", (ws) => {
         }
       } else {
         // ⚠️ Tarjeta nueva → enviar a admins para registro
-        console.log("Tarjeta no registrada, enviando a admins...");
+        console.log("Tarjeta no registrada, enviando a RFID...");
         // Guardar en variable global SOLO si data existe y es una tarjeta no registrada
         ultimoRFIDNoRegistrado = { codeRFID: data.card_id, timestamp: Date.now() };
         for (const admin of registrationAdmins) {

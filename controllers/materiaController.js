@@ -21,7 +21,8 @@ export const getMateriaById = async (req, res) => {
 
 export const getMateriasByProfesor = async (req, res) => {
   try {
-    const { idUsuario } = req.params;
+    // route is defined as /profesor/:id -> read `id` param
+    const idUsuario = req.params.id;
     const materias = await Materia.findAll({ where: { idUsuario } });
     res.json(materias);
   } catch (error) {
