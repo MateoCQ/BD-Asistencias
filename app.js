@@ -24,6 +24,15 @@ app.use("/api/materias", materiasRoutes);
 app.use("/api/alumnos", alumnosRoutes);
 app.use("/api/asistencias", asistenciasRoutes);
 
+// Endpoint REST para último RFID no registrado (debe estar a nivel de app, no dentro de WS)
+app.get("/api/alumnos/ultimo-rfid-no-registrado", (req, res) => {
+  if (ultimoRFIDNoRegistrado.codeRFID) {
+    res.json(ultimoRFIDNoRegistrado);
+  } else {
+    res.status(404).json({ message: "No hay RFID no registrado reciente" });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 
 // HTTP + WebSocket
@@ -75,16 +84,19 @@ wss.on("connection", (ws) => {
         // Avoid repeated attendance entries for same alumno in a short window
         try {
           const now = Date.now();
-          const lastAlumnoTs = lastSeenByAlumno.get(alumno.id);
+          const key = alumno.legajo ?? alumno.id;
+          const lastAlumnoTs = lastSeenByAlumno.get(key);
           if (lastAlumnoTs && (now - lastAlumnoTs) < LAST_SEEN_ALUMNO_MS) {
-            console.log(`Ignorando asistencia duplicada para alumno ${alumno.id} (dentro de ${LAST_SEEN_ALUMNO_MS}ms)`);
+            console.log(`Ignorando asistencia duplicada para alumno ${key} (dentro de ${LAST_SEEN_ALUMNO_MS}ms)`);
             return;
           }
-          lastSeenByAlumno.set(alumno.id, now);
+          lastSeenByAlumno.set(key, now);
         } catch (e) {}
+        // Broadcast plain alumno object (no instancia Sequelize) to avoid missing fields on client
+        const alumnoPlain = (typeof alumno.get === 'function') ? alumno.get({ plain: true }) : alumno;
         for (const wsFront of asistenciaViews) {
           if (wsFront.readyState === wsFront.OPEN) {
-            wsFront.send(JSON.stringify({ type: "new_attendance", alumno }));
+            wsFront.send(JSON.stringify({ type: "new_attendance", alumno: alumnoPlain }));
           }
         }
       } else {
@@ -106,15 +118,6 @@ wss.on("connection", (ws) => {
     if (typeof data === "object" && data.type === "browser_subscribe_registration") {
       registrationAdmins.add(ws);
       ws.isRegistration = true;
-
-// Endpoint REST para último RFID no registrado
-app.get("/api/alumnos/ultimo-rfid-no-registrado", (req, res) => {
-  if (ultimoRFIDNoRegistrado.codeRFID) {
-    res.json(ultimoRFIDNoRegistrado);
-  } else {
-    res.status(404).json({ message: "No hay RFID no registrado reciente" });
-  }
-});
       console.log("Admin suscripto al registro.");
     }
 
